@@ -6,10 +6,16 @@
 package cloudcomputingjsonmerger;
 
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.javatuples.Pair;
 import org.json.JSONObject;
 
@@ -39,20 +45,23 @@ public class CloudComputingJSONMerger {
         
     }
     
-    public static Map<String, List<JSONObject>> MergeJSONFiles(File[] files){
-        // list to hole like files
-        Map<String, List<Pair<String, File>>> groupedFiles = groupFiles(files);
+    public static Map<String, Map<String, JSONObject>> MergeJSONFiles(File[] files){
+        // map to hold all processed JSON object
+        Map<String, PriorityQueue<JSONFile>> groupedFiles = groupFiles(files);
         
-        Map<String, List<JSONObject>> processedObjects = new HashMap<>();
+        Map<String, Map<String, JSONObject>> processedObjects = new HashMap<>();
         
+        // loop through each article
         for(String articleId : groupedFiles.keySet()){
             // get the list of files for the same article ID
-            List<Pair<String, File>> articleFiles = groupedFiles.get(articleId);
+            PriorityQueue<JSONFile> pq = groupedFiles.get(articleId);
             
             System.out.println(articleId + ":");
-            for(Pair<String, File> DateFilePair : articleFiles){
-                String date = DateFilePair.getValue0();
-                File curFile = DateFilePair.getValue1();
+            // loop through all files per article
+            while(!pq.isEmpty()){
+                JSONFile DateFilePair = pq.poll();
+                Date date = DateFilePair.getDate();
+                File curFile = DateFilePair.getFile();
                 
                 System.out.println("\t" + curFile.getName() + " " + date);
             }
@@ -63,9 +72,9 @@ public class CloudComputingJSONMerger {
     }
     
     // groups files with same article id in map
-    public static Map<String, List<Pair<String, File>>> groupFiles(File[] files){
+    public static Map<String, PriorityQueue<JSONFile>> groupFiles(File[] files){
         // list to hole like files
-        Map<String, List<Pair<String, File>>> groupedFiles = new HashMap<>();
+        Map<String, PriorityQueue<JSONFile>> groupedFiles = new HashMap<>();
         
         int file_count = 0;
         for(File file : files){
@@ -95,15 +104,25 @@ public class CloudComputingJSONMerger {
             String articleID = fname_date[0];
             String date = fname_date[1];
             
+            // convert the date to a dateobject
+            Date testDate;
+            try {
+                testDate = new SimpleDateFormat("yyyyMMddHHmmss").parse(date);
+            } catch (ParseException ex) {
+                // skip malformed dates
+                Logger.getLogger(CloudComputingJSONMerger.class.getName()).log(Level.SEVERE, null, ex);
+                continue;
+            }
+            
             // pair the file with its date
-            Pair<String, File> fileDatePair = Pair.with(date, file);
+            JSONFile fileDatePair = new JSONFile(testDate, articleID, file);
            
             if(groupedFiles.containsKey(articleID)){
                 // if we have seen this article, add the pair
                 groupedFiles.get(articleID).add(fileDatePair);
             }else{
-                // if not, add the key and pair
-                ArrayList<Pair<String, File>> temp = new ArrayList<>();
+                // if not, add the key and pair with descending order
+                PriorityQueue<JSONFile> temp = new PriorityQueue<>(10, new JSONFileComparator().reversed());
                 temp.add(fileDatePair);
                 groupedFiles.put(articleID, temp);
             }
