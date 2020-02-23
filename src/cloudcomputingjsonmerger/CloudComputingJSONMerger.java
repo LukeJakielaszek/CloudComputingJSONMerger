@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.javatuples.Pair;
+import org.json.JSONObject;
 
 /**
  *
@@ -38,9 +39,27 @@ public class CloudComputingJSONMerger {
         
     }
     
-    public static void MergeJSONFiles(File[] files){
+    public static Map<String, List<JSONObject>> MergeJSONFiles(File[] files){
         // list to hole like files
         Map<String, List<Pair<String, File>>> groupedFiles = groupFiles(files);
+        
+        Map<String, List<JSONObject>> processedObjects = new HashMap<>();
+        
+        for(String articleId : groupedFiles.keySet()){
+            // get the list of files for the same article ID
+            List<Pair<String, File>> articleFiles = groupedFiles.get(articleId);
+            
+            System.out.println(articleId + ":");
+            for(Pair<String, File> DateFilePair : articleFiles){
+                String date = DateFilePair.getValue0();
+                File curFile = DateFilePair.getValue1();
+                
+                System.out.println("\t" + curFile.getName() + " " + date);
+            }
+            
+        }
+        
+        return processedObjects;
     }
     
     // groups files with same article id in map
