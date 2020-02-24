@@ -8,20 +8,17 @@ package cloudcomputingjsonmerger;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.javatuples.Pair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,39 +35,25 @@ public class CloudComputingJSONMerger {
      */
     public static void main(String[] args) {
         // ensure 1 argument is passed through
-        if(args.length != 1){
-            System.out.println("Error: Must supply only 1 argument.");
+        if(args.length != 2){
+            System.out.println("Error: Must supply 2 arguments (in_directory out_directory).");
             System.exit(-1);
         }
         
-        // store argument
+        // store arguments
         String directory = args[0];
-        System.out.println(directory);
+        System.out.println("Input Directory [" + directory + "]");
+        
+        String outDirectory = args[1];
+        System.out.println("Out Directory: [" + outDirectory + "]");       
         
         File[] files = getDirContents(directory);
         
-        Map<String, Map<String, FileNode>> processedArticles = MergeJSONFiles(files);
+        MergeJSONFiles(files, outDirectory);
         
-        // loop through each article
-        for(String articleID : processedArticles.keySet()){
-            System.out.println(articleID + ":");
-            
-            Map<String, FileNode> curArticle = processedArticles.get(articleID);
-            for(String nodeID : curArticle.keySet()){
-                FileNode curNode = curArticle.get(nodeID);
-                
-                // add the curNode to a JSONArray
-            }
-            
-            // write the JSONArray to file
         }
-        
-    }
     
-    public static Map<String, Map<String, FileNode>> MergeJSONFiles(File[] files){
-        // map to hold all articles with corresponding contents merged
-        Map<String, Map<String, FileNode>> processedArticles = new HashMap<>();
-        
+    public static void MergeJSONFiles(File[] files, String outDirectory){     
         // map to hold all processed JSON object
         Map<String, PriorityQueue<JSONFile>> groupedFiles = groupFiles(files);
         
@@ -79,7 +62,7 @@ public class CloudComputingJSONMerger {
             // get the list of files for the same article ID
             PriorityQueue<JSONFile> pq = groupedFiles.get(articleId);
             
-            // a mapping for each node based on id
+            // a mapping for each node based on nodeid
             Map<String, FileNode> nodeMap = new HashMap<>();
             
             System.out.println(articleId + ":");
@@ -135,11 +118,29 @@ public class CloudComputingJSONMerger {
                 System.out.println("\t\t" + nodeArray.length() + " node(s) in file.");
             }
             
-            // store final contents of article
-            processedArticles.put(articleId, nodeMap);            
+            // create a JSON array for output
+            JSONArray articleContents = new JSONArray();
+            
+            System.out.println("\t\t\tTotal Nodes after merge: " + nodeMap.values().size());            
+            // add all nodes to array
+            for(FileNode node : nodeMap.values()){
+                articleContents.put(node);
+            }
+            
+            // open the output file
+            String outFileName = outDirectory + articleId + ".txt";
+            FileWriter outFile;
+            try {
+                // write the array to file
+                outFile = new FileWriter(outFileName);
+                outFile.write(articleContents.toString());
+                outFile.close();
+            } catch (IOException ex) {
+                Logger.getLogger(CloudComputingJSONMerger.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("Error: Failed to write [" + articleId + "] to [" + outFileName + "]");
+                System.exit(-4);
+            }
         }
-        
-        return processedArticles;
     }
     
     public static JSONObject getFileContents(JSONFile jsonFile){                
