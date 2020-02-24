@@ -129,16 +129,22 @@ public class CloudComputingJSONMerger {
             
             // open the output file
             String outFileName = outDirectory + articleId + ".txt";
-            FileWriter outFile;
+            FileWriter outFile = null;
             try {
                 // write the array to file
                 outFile = new FileWriter(outFileName);
                 outFile.write(articleContents.toString());
-                outFile.close();
             } catch (IOException ex) {
                 Logger.getLogger(CloudComputingJSONMerger.class.getName()).log(Level.SEVERE, null, ex);
                 System.out.println("Error: Failed to write [" + articleId + "] to [" + outFileName + "]");
                 System.exit(-4);
+            }finally{
+                try {
+                    // close the file
+                    outFile.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(CloudComputingJSONMerger.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }
     }
