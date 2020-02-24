@@ -49,13 +49,27 @@ public class CloudComputingJSONMerger {
         
         File[] files = getDirContents(directory);
         
-        MergeJSONFiles(files);
+        Map<String, Map<String, FileNode>> processedArticles = MergeJSONFiles(files);
+        
+        // loop through each article
+        for(String articleID : processedArticles.keySet()){
+            System.out.println(articleID + ":");
+            
+            Map<String, FileNode> curArticle = processedArticles.get(articleID);
+            for(String nodeID : curArticle.keySet()){
+                FileNode curNode = curArticle.get(nodeID);
+                
+                // add the curNode to a JSONArray
+            }
+            
+            // write the JSONArray to file
+        }
         
     }
     
-    public static Map<String, Map<String, JSONObject>> MergeJSONFiles(File[] files){
+    public static Map<String, Map<String, FileNode>> MergeJSONFiles(File[] files){
         // map to hold all articles with corresponding contents merged
-        Map<String, Map<String, JSONObject>> processedArticles = new HashMap<>();
+        Map<String, Map<String, FileNode>> processedArticles = new HashMap<>();
         
         // map to hold all processed JSON object
         Map<String, PriorityQueue<JSONFile>> groupedFiles = groupFiles(files);
@@ -91,24 +105,38 @@ public class CloudComputingJSONMerger {
                 // loop through every node in the current file
                 for(int i = 0; i < nodeArray.length(); i++){
                     // get the current node
-                    JSONObject node = nodeArray.getJSONObject(i);
+                    JSONObject curNode = nodeArray.getJSONObject(i);
                     
                     // get the id of the node
-                    String id = node.getString("id");
+                    String id = curNode.getString("id");
                     
                     if(nodeMap.containsKey(id)){
-                        System.out.println("\t\tDuplicate Node Detected");
+                        // duplicate detected
+                        FileNode storedNode = nodeMap.get(id);
+                        //System.out.println("\t\tDuplicate Node Detected");
+                        
+                        // loop through all keys of the node
+                        for(String key : curNode.keySet()){
+                            if(storedNode.node.has(key)){
+                                // must check if it is updated (since were doing oldest to
+                                // newest, it doesnt matter if its updated
+                                
+                            }else{
+                                // our old node does not have the key, so we add it
+                                storedNode.node.put(key, curNode.get(key));
+                            }
+                        }
+                        
                     }else{
-                        nodeMap.put(id, new FileNode(node, id));
+                        nodeMap.put(id, new FileNode(curNode, id));
                     }
                 }
                 
                 System.out.println("\t\t" + nodeArray.length() + " node(s) in file.");
             }
             
-            // stores final contents of file
-            JSONArray fileContents = new JSONArray();
-            
+            // store final contents of article
+            processedArticles.put(articleId, nodeMap);            
         }
         
         return processedArticles;

@@ -19,4 +19,9 @@ public class FileNode {
         this.node = node;
         this.nodeID = nodeID;
     }
+
+    @Override
+    public String toString() {
+        return node.toString();
+    }    
 }
