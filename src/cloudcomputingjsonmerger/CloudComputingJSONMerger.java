@@ -51,7 +51,7 @@ public class CloudComputingJSONMerger {
         
         MergeJSONFiles(files, outDirectory);
         
-        }
+    }
     
     public static void MergeJSONFiles(File[] files, String outDirectory){     
         // map to hold all processed JSON object
@@ -101,6 +101,7 @@ public class CloudComputingJSONMerger {
                         // loop through all keys of the node
                         for(String key : curNode.keySet()){
                             if(storedNode.node.has(key)){
+                                
                                 // must check if it is updated (since were doing oldest to
                                 // newest, it doesnt matter if its updated
                                 
@@ -127,13 +128,17 @@ public class CloudComputingJSONMerger {
                 articleContents.put(node);
             }
             
+            // store response
+            JSONObject finalResponse = new JSONObject();
+            finalResponse.put("response", articleContents);
+            
             // open the output file
             String outFileName = outDirectory + articleId + ".txt";
             FileWriter outFile = null;
             try {
                 // write the array to file
                 outFile = new FileWriter(outFileName);
-                outFile.write(articleContents.toString());
+                outFile.write(finalResponse.toString());
             } catch (IOException ex) {
                 Logger.getLogger(CloudComputingJSONMerger.class.getName()).log(Level.SEVERE, null, ex);
                 System.out.println("Error: Failed to write [" + articleId + "] to [" + outFileName + "]");
@@ -147,6 +152,30 @@ public class CloudComputingJSONMerger {
                 }
             }
         }
+    }
+    
+    // returns jsonObject or null on failure
+    public static JSONObject getJSONObject(String object){
+        JSONObject jsonObject;
+        try{
+            jsonObject = new JSONObject(object);
+        }catch(JSONException ex){
+            jsonObject = null;
+        }
+        
+        return jsonObject;
+    }
+    
+    // returns jsonArray or null on failure
+    public static JSONArray getJSONArray(String object){
+        JSONArray jsonArray;
+        try{
+            jsonArray = new JSONArray(object);
+        }catch(JSONException ex){
+            jsonArray = null;
+        }
+        
+        return jsonArray;
     }
     
     public static JSONObject getFileContents(JSONFile jsonFile){                
