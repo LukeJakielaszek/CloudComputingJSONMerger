@@ -53,6 +53,68 @@ public class CloudComputingJSONMerger {
         
     }
     
+    // adds completely unique elements to a json array if they exist
+    public static void updateJSONArray(JSONArray storedNode, JSONArray curNode){
+        Map<String, Integer> storedMap = new HashMap<>();
+
+        // create a mapping from every element in our source array to its index
+        for(int i = 0; i < storedNode.length(); i++){
+            String srcObject = storedNode.get(i).toString();
+            storedMap.put(srcObject, i);
+        }
+        
+        // loop through the new array to find unique elements
+        for(int i = 0; i < curNode.length(); i++){
+            String curObject = curNode.get(i).toString();
+            
+            if(!storedMap.containsKey(curObject)){
+                // a unique array element has been found
+                // add it to the stored array
+                storedNode.put(curObject);
+            }
+        }
+    }
+    
+    // recursively adds unique elements to a jsonobject
+    public static void updateJSONObject(JSONObject storedNode, JSONObject curNode){        
+        // loop through all keys of the node
+        for (String key : curNode.keySet()) {
+            if (storedNode.has(key)) {
+                // both nodes have the same key
+                // check what type of value we map to
+                
+                // used to check for jsonobjects
+                JSONObject srcObj = null;
+                JSONObject curObj = null;
+                
+                // used to check for jsonarrays
+                JSONArray srcArr = null;
+                JSONArray curArr = null;
+                
+                if(((srcObj = getJSONObject(storedNode.get(key))) != null) && ((curObj = getJSONObject(curNode.get(key))) != null)){
+                    // both values are a json object
+                    updateJSONObject(srcObj, curObj);
+                }else if(((srcArr = getJSONArray(storedNode.get(key))) != null) && ((curArr = getJSONArray(curNode.get(key))) != null)){
+                    // both values are json array
+                    updateJSONArray(srcArr, curArr);
+                }else{
+                    if(srcObj != null || curObj != null || srcArr != null || curArr != null){
+                        // data mismatch between documents detected
+                        System.err.println("ERROR: Document structure mismatch detected");
+                    }
+                    
+                    // value is not json, therefore we do nothing as we already 
+                    //have the most recent version
+                    continue;
+                }
+                
+            } else {
+                // our stored node does not have the key, so we add it
+                storedNode.put(key, curNode.get(key));
+            }
+        }
+    }
+    
     public static void MergeJSONFiles(File[] files, String outDirectory){     
         // map to hold all processed JSON object
         Map<String, PriorityQueue<JSONFile>> groupedFiles = groupFiles(files);
@@ -67,7 +129,7 @@ public class CloudComputingJSONMerger {
             
             System.out.println(articleId + ":");
             // loop through all files per article
-            while(!pq.isEmpty()){
+            while(!pq.isEmpty()){                
                 // obtain file
                 JSONFile curFile = pq.poll();
                 System.out.println("\t" + curFile.getFile().getName() + " " + curFile.getDate());
@@ -93,11 +155,17 @@ public class CloudComputingJSONMerger {
                     // get the id of the node
                     String id = curNode.getString("id");
                     
+                    // check if the current node is unique
                     if(nodeMap.containsKey(id)){
-                        // duplicate detected
+                        // duplicate ids detected
+                        // get our stored duplicate node from map
                         FileNode storedNode = nodeMap.get(id);
-                        //System.out.println("\t\tDuplicate Node Detected");
                         
+                        // update the json object corresponding to the node
+                        updateJSONObject(storedNode.node, curNode);
+                        
+                        
+                        /*
                         // loop through all keys of the node
                         for(String key : curNode.keySet()){
                             if(storedNode.node.has(key)){
@@ -110,8 +178,9 @@ public class CloudComputingJSONMerger {
                                 storedNode.node.put(key, curNode.get(key));
                             }
                         }
-                        
+                        */
                     }else{
+                        // add nodes with unique ids to our map
                         nodeMap.put(id, new FileNode(curNode, id));
                     }
                 }
@@ -155,7 +224,7 @@ public class CloudComputingJSONMerger {
     }
     
     // returns jsonObject or null on failure
-    public static JSONObject getJSONObject(String object){
+    public static JSONObject getJSONObject(Object object){
         JSONObject jsonObject;
         try{
             jsonObject = new JSONObject(object);
@@ -167,7 +236,7 @@ public class CloudComputingJSONMerger {
     }
     
     // returns jsonArray or null on failure
-    public static JSONArray getJSONArray(String object){
+    public static JSONArray getJSONArray(Object object){
         JSONArray jsonArray;
         try{
             jsonArray = new JSONArray(object);
