@@ -15,8 +15,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
@@ -55,19 +57,19 @@ public class CloudComputingJSONMerger {
     
     // adds completely unique elements to a json array if they exist
     public static void updateJSONArray(JSONArray storedNode, JSONArray curNode){
-        Map<String, Integer> storedMap = new HashMap<>();
+        Set<String> storedSet = new HashSet<>();
 
         // create a mapping from every element in our source array to its index
         for(int i = 0; i < storedNode.length(); i++){
             String srcObject = storedNode.get(i).toString();
-            storedMap.put(srcObject, i);
+            storedSet.add(srcObject);
         }
         
         // loop through the new array to find unique elements
         for(int i = 0; i < curNode.length(); i++){
             String curObject = curNode.get(i).toString();
             
-            if(!storedMap.containsKey(curObject)){
+            if(!storedSet.contains(curObject)){
                 // a unique array element has been found
                 // add it to the stored array
                 storedNode.put(curObject);
