@@ -5,17 +5,21 @@
  */
 package cloudcomputingjsonmerger;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Scanner;
@@ -26,6 +30,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -136,41 +141,47 @@ public class CloudComputingJSONMerger {
                 System.out.println("\t" + curFile.getFile().getName() + " " + curFile.getDate());
                 
                 // attempt to read file
-                JSONObject fileWrapper = getFileContents(curFile);
+                List<JSONObject> cursorArray = getFileAsArray(curFile);
                 
                 // check to see if json read correctly
-                if(fileWrapper == null){
+                if(cursorArray == null || cursorArray.size() == 0){
                     System.out.println("ERROR: Failed to read json from file " + curFile.getFile().getName());
                     // skip files with error
                     continue;
                 }
                 
-                // get the JSON node array
-                JSONArray nodeArray = fileWrapper.getJSONArray("response");
-                
-                // loop through every node in the current file
-                for(int i = 0; i < nodeArray.length(); i++){
-                    // get the current node
-                    JSONObject curNode = nodeArray.getJSONObject(i);
-                    
-                    // get the id of the node
-                    String id = curNode.getString("id");
-                    
-                    // check if the current node is unique
-                    if(nodeMap.containsKey(id)){
-                        // duplicate ids detected
-                        // get our stored duplicate node from map
-                        FileNode storedNode = nodeMap.get(id);
-                        
-                        // update the json object corresponding to the node
-                        updateJSONObject(storedNode.node, curNode);
-                    }else{
-                        // add nodes with unique ids to our map
-                        nodeMap.put(id, new FileNode(curNode, id));
+                int nodeCount = 0;
+                for (JSONObject fileWrapper : cursorArray) {
+
+                    // get the JSON node array
+                    JSONArray nodeArray = fileWrapper.getJSONArray("response");
+
+                    // loop through every node in the current file
+                    for (int i = 0; i < nodeArray.length(); i++) {
+                        // get the current node
+                        JSONObject curNode = nodeArray.getJSONObject(i);
+
+                        // get the id of the node
+                        String id = curNode.getString("id");
+
+                        // check if the current node is unique
+                        if (nodeMap.containsKey(id)) {
+                            // duplicate ids detected
+                            // get our stored duplicate node from map
+                            FileNode storedNode = nodeMap.get(id);
+
+                            // update the json object corresponding to the node
+                            updateJSONObject(storedNode.node, curNode);
+                        } else {
+                            // add nodes with unique ids to our map
+                            nodeMap.put(id, new FileNode(curNode, id));
+                        }
                     }
+
+                    System.out.println("\t\t" + nodeArray.length() + " node(s) in cursor.");
+                    nodeCount += nodeArray.length();
                 }
-                
-                System.out.println("\t\t" + nodeArray.length() + " node(s) in file.");
+                System.out.println("\t\t\t" + nodeCount + " node(s) in file.");
             }
             
             // create a JSON array for output
@@ -232,6 +243,10 @@ public class CloudComputingJSONMerger {
         return jsonArray;
     }
     
+    // Used to parse a valid JSON file (this assumes only 1 cursor per file.
+    // This is not used in this assignment since the large file > 500 KB has
+    // more than 1 cursor in it. However, the cursors are not wrapper in an 
+    // array and are therefore invalid JSON
     public static JSONObject getFileContents(JSONFile jsonFile){                
         // attempt to read file
         JSONObject fileWrapper;
@@ -251,6 +266,42 @@ public class CloudComputingJSONMerger {
         return fileWrapper;
     }
     
+    // used to parse JSON file with multiple cursors. This is bad JSON
+    public static List<JSONObject> getFileAsArray(JSONFile jsonFile){
+        List<JSONObject> jsonArray = new ArrayList<>();
+
+        // This will reference one line at a time
+        String line = null;
+
+        try {
+            // Open the file
+            FileReader fileReader = new FileReader(jsonFile.getFile().getAbsolutePath());
+
+            // read as a buffer
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+            // assume each cursor is on a seperate line
+            while ((line = bufferedReader.readLine()) != null) {
+                // tokenize the line
+                JSONObject cursor = new JSONObject(new JSONTokener(line));;
+                
+                // track the json object
+                jsonArray.add(cursor);
+            }
+            
+            // close the reader
+            bufferedReader.close();
+            fileReader.close();
+        } catch (FileNotFoundException ex) {
+            System.out.println("ERROR: Failed to open file [" + jsonFile.getFile().getAbsolutePath() + "]");
+        } catch (IOException ex) {
+            System.out.println("Error: Failed to read file [" + jsonFile.getFile().getAbsolutePath() + "]");
+        }
+        
+        // return json contents
+        return jsonArray;
+    }
+
     // groups files with same article id in map
     public static Map<String, PriorityQueue<JSONFile>> groupFiles(File[] files){
         // list to hole like files
