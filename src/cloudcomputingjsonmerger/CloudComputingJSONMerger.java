@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,17 +37,15 @@ public class CloudComputingJSONMerger {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // ensure 1 argument is passed through
-        if(args.length != 2){
-            System.out.println("Error: Must supply 2 arguments (in_directory out_directory).");
-            System.exit(-1);
-        }
+        Scanner scan = new Scanner(System.in);
         
-        // store arguments
-        String directory = args[0];
+        // get directory
+        System.out.print("Enter an input directory >");
+        String directory = scan.nextLine();
         System.out.println("Input Directory [" + directory + "]");
         
-        String outDirectory = args[1];
+        System.out.print("Enter an output directory >");
+        String outDirectory = scan.nextLine();
         System.out.println("Out Directory: [" + outDirectory + "]");       
         
         File[] files = getDirContents(directory);
@@ -165,22 +164,6 @@ public class CloudComputingJSONMerger {
                         
                         // update the json object corresponding to the node
                         updateJSONObject(storedNode.node, curNode);
-                        
-                        
-                        /*
-                        // loop through all keys of the node
-                        for(String key : curNode.keySet()){
-                            if(storedNode.node.has(key)){
-                                
-                                // must check if it is updated (since were doing oldest to
-                                // newest, it doesnt matter if its updated
-                                
-                            }else{
-                                // our old node does not have the key, so we add it
-                                storedNode.node.put(key, curNode.get(key));
-                            }
-                        }
-                        */
                     }else{
                         // add nodes with unique ids to our map
                         nodeMap.put(id, new FileNode(curNode, id));
