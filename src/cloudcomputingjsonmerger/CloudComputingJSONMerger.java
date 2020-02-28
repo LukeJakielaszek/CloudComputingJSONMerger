@@ -149,10 +149,11 @@ public class CloudComputingJSONMerger {
                     continue;
                 }
                 
+                // loop through each cursor
                 int nodeCount = 0;
                 for (JSONObject fileWrapper : cursorArray) {
 
-                    // get the JSON node array
+                    // get the JSON node array of the current cursor
                     JSONArray nodeArray = fileWrapper.getJSONArray("response");
 
                     // loop through every node in the current file
@@ -266,6 +267,9 @@ public class CloudComputingJSONMerger {
     }
     
     // used to parse JSON file with multiple cursors. This is bad JSON
+    // and we should not need to handle it, but I never received a response
+    // when I emailed Dr. Dragut letting him know of the error in his 5by3
+    // folder that was supplied for testing.
     public static List<JSONObject> getFileAsArray(JSONFile jsonFile){
         List<JSONObject> jsonArray = new ArrayList<>();
 
